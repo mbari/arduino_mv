@@ -4,14 +4,36 @@
 #include <avr/interrupt.h>
 #include <string.h>
 #include <avr/pgmspace.h>
+
+
+#define DEBUG
+
+#ifdef DEBUG
 #include <SoftwareSerial.h>
+SoftwareSerial debugPort(3,4);// used for debugging
+//nomal Serial port used for gsm module for fully interrupt driven prog
+#endif
+
+
+//#include <SD.h>
+
+//File myFile;
+
 int dataPin=6;
 int clockPin=7;
 
-SoftwareSerial gsm(3,4);
+//Definition of Row pins 
+int R0=14;
+int R1=15;
+int R2=16;
+int R3=17;
+int R4=18;
+int R5=19;
+int R6=8;
+
 
 #define SCROLL_DELAY 2     /* scroll delay */
-#define DEBUG
+
 
 void fill_rx_bufer(void);
 
@@ -164,23 +186,31 @@ boolean stringComplete = false;  // whether the string is complete
 
 void setup()
 {
+  //DATA AND CLOCK VARIABLES
   pinMode(dataPin,OUTPUT);
   pinMode(clockPin,OUTPUT);
-
-  DDRB=0XFF;
-  PORTB=0X00;
-
-  Serial.begin(9600);// USART_Init();
-  inputString.reserve(200);
-
+  //ROW VARIABLES
+  pinMode(R0,OUTPUT);
+  pinMode(R1,OUTPUT);
+  pinMode(R2,OUTPUT);
+  pinMode(R3,OUTPUT);
+  pinMode(R4,OUTPUT);
+  pinMode(R5,OUTPUT);
+  pinMode(R6,OUTPUT);
+  
+  pinMode(10,OUTPUT);
+  
+  digitalWrite(R0,LOW);
+  digitalWrite(R1,LOW);
+  digitalWrite(R2,LOW);
+  digitalWrite(R3,LOW);
+  digitalWrite(R4,LOW);
+  digitalWrite(R5,LOW);
+  digitalWrite(R6,LOW);
+  
+  
   old_divi=0;
   modu=0;
-
-
-  // initialise ports
-  //digitalWrite(clockPin,HIGH) ; 
-  //PORTB = 0x07;  
-
   offset_col=0;
   blank1_limit=17;
   ch_limit=0;
@@ -189,10 +219,43 @@ void setup()
   CH_LIM=0;
   OFF_CH=0;
   k=0;
+  
+  Serial.begin(9600);// USART_Init();
+ #ifdef DEBUG 
+ debugPort.begin(9600); 
+ #endif// init debug port
+  inputString.reserve(200);
+  
+  debugPort.println("LED SIGN BY PETER MBARI!");
+  
+//  Serial.print("Initializing SD card...");
+//    if (!SD.begin(4)) {
+//    Serial.println("initialization failed!");
+//    return;
+//  }
+//  Serial.println("initialization done.");
+//  
+//  myFile = SD.open("test.txt", FILE_WRITE);
+//  
+//  // if the file opened okay, write to it:
+//  if (myFile) {
+//    Serial.print("Writing to test.txt...");
+//    myFile.println("testing 1, 2, 3.");
+//	// close the file:
+//    myFile.close();
+//    Serial.println("done.");
+//  }
+//  else {
+//    // if the file didn't open, print an error:
+//    Serial.println("error opening test.txt");
+//  }
+  
+  
+
   // end of initiliasation
 
 
-  putEchoOff();
+  // putEchoOff();
   //setCNMImode();
   //setSMSmode();
 
@@ -265,10 +328,50 @@ void displayMessage(unsigned char msg[]){
           }				 
 
         }
-
-        PORTB = row; 
-        _delay_us(1000);
-        PORTB = 7;
+        
+        switch(row){
+        case 0:
+              digitalWrite(R0,HIGH);
+              delay(1);
+              digitalWrite(R0,LOW);
+              break;
+        case 1:
+             digitalWrite(R1,HIGH);
+             delay(1);
+             digitalWrite(R1,LOW);
+             break;
+             
+        case 2:
+              digitalWrite(R2,HIGH);
+              delay(1);
+               digitalWrite(R2,LOW);
+              break;
+         case 3:
+              digitalWrite(R3,HIGH);
+              delay(1);
+             digitalWrite(R3,LOW);
+              break;
+         case 4:
+              digitalWrite(R4,HIGH);
+              delay(1);
+            digitalWrite(R4,LOW);
+              break;
+          case 5:
+             digitalWrite(R5,HIGH);
+              delay(1);
+          digitalWrite(R5,LOW);
+              break;
+          case 6:
+              digitalWrite(R6,HIGH);
+              delay(1);
+              digitalWrite(R6,LOW);
+              break;
+         default:
+             break;
+        }
+       // PORTC = row; 
+        //_delay_ms(100);
+        //PORTC = 7;
 
       }
     }//delay
@@ -432,7 +535,7 @@ void putEchoOff(void)  // Sends echo command off
 {
   while (1)
   {
-    gsm.println("ATE0\r");
+    Serial.println("ATE0\r");
     while(!stringComplete);// to implement a timeout to avoid freezing here
     if (Get_AT_Response(PSTR("OK")));
   }
@@ -443,7 +546,7 @@ void setSMSmode(void)  // Set to sms mode
 {
   while (1)
   {
-    gsm.println("AT+CMGF=1\r");
+    Serial.println("AT+CMGF=1\r");
     while(!stringComplete);
     if (Get_AT_Response(PSTR("OK")))break;
   }
@@ -454,7 +557,7 @@ void setCNMImode(void)  // set sms to be received automatically OR FLASHED TO TH
   while (1)
   {
 							// clear the buffer
-    gsm.println("AT+CNMI=2,2,0,0,0"); // send command
+    Serial.println("AT+CNMI=2,2,0,0,0"); // send command
     while(!stringComplete);						// wait for response
     if (Get_AT_Response(PSTR("OK")))		//check the response
       break;	
