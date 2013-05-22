@@ -4,18 +4,15 @@
 #include <avr/interrupt.h>
 #include <string.h>
 #include <avr/pgmspace.h>
-
+#include <SoftwareSerial.h>
+//#include <SD.h>
 
 #define DEBUG
 
-#ifdef DEBUG
-#include <SoftwareSerial.h>
-SoftwareSerial debugPort(3,4);// used for debugging
+SoftwareSerial debugPort(2,3);// used for debugging
 //nomal Serial port used for gsm module for fully interrupt driven prog
-#endif
 
 
-//#include <SD.h>
 
 //File myFile;
 
@@ -186,7 +183,7 @@ boolean stringComplete = false;  // whether the string is complete
 
 void setup()
 {
-  //DATA AND CLOCK VARIABLES
+  //DATA AND CLOCK pins
   pinMode(dataPin,OUTPUT);
   pinMode(clockPin,OUTPUT);
   //ROW VARIABLES
@@ -221,12 +218,11 @@ void setup()
   k=0;
   
   Serial.begin(9600);// USART_Init();
- #ifdef DEBUG 
- debugPort.begin(9600); 
- #endif// init debug port
+  debugPort.begin(9600); 
   inputString.reserve(200);
-  
+  debugPort.println("DEBUG ON");
   debugPort.println("LED SIGN BY PETER MBARI!");
+  
   
 //  Serial.print("Initializing SD card...");
 //    if (!SD.begin(4)) {
@@ -299,14 +295,13 @@ void displayMessage(unsigned char msg[]){
           dig[i]=0xff;
           --i;
         }
-        if     (modu==1)modu1();
+        if     (modu==1) modu1();
         else if(modu==2) modu2();
         else if(modu==3) modu3();
         else if(modu==4) modu4();
         else if(modu==5) modu5();
 
         for(i=1;i<17;i++){
-
           t=dig[i];
           for (int x=0;x<6;x++){
             if(x==0){
@@ -324,11 +319,8 @@ void displayMessage(unsigned char msg[]){
               digitalWrite(clockPin,LOW); 				// CLEAR THE CLOCK
               digitalWrite(clockPin,HIGH);				
             }
-
           }				 
-
         }
-        
         switch(row){
         case 0:
               digitalWrite(R0,HIGH);
@@ -369,10 +361,6 @@ void displayMessage(unsigned char msg[]){
          default:
              break;
         }
-       // PORTC = row; 
-        //_delay_ms(100);
-        //PORTC = 7;
-
       }
     }//delay
     if(++offset_col>700){	   
@@ -588,5 +576,21 @@ bool has(char *haystack, char *needle)
   //clear_buffer();
   return false; //no match was found
 }
-
+void serialEvent() {
+  while (Serial.available()) {
+    debugPort.println("rx");
+    // get the new byte:
+    char inChar = (char)Serial.read(); 
+    // add it to the inputString:
+    inputString += inChar;
+    // if the incoming character is a newline, set a flag
+    // so the main loop can do something about it:
+    if (inChar == '\r') {
+      stringComplete = true;
+      debugPort.println(inputString);
+      inputString="";
+      stringComplete = false;     
+    } 
+  }
+}
 
